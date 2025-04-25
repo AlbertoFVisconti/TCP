@@ -52,6 +52,9 @@ uint32_t next_seq = 0;
 void rtt_timeout_event () {
     rtt_expected_ack = 0;
     timeout_ms *= 2;
+	if(CC_SLOW_START==cc_state && cwnd >=sstresh){
+		cc_state=CC_CONGESTION_AVOIDANCE;
+	}
 }
 
 void cc_timeout (void) {
@@ -94,6 +97,7 @@ void cc_receive_acks (int acks) {
 		cc_state=CC_CONGESTION_AVOIDANCE;
 		dup_ack_count=0;
 		//TODO understand why in book cwnd=sstresh however this violates the assertion next_seq < base + cwnd
+		cwnd=sstresh;
 		break;
 	case CC_SLOW_START:
 		dup_ack_count=0;
