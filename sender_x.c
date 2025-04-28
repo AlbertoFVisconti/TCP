@@ -57,6 +57,15 @@ void rtt_timeout_event () {
 	}
 }
 
+/*
+a new ack in FR  could violate the assertion next_seq < base + cwnd
+however forcing next_seq to be max base + cwnd - 1 could cause a sequence like this: 
+[CA] recived ACK: next_seq=190 base=156 cwnd=13 (initial state)
+[FR] triple ACK: next_seq=173 base=160 cwnd=9 
+[CA] recived ACK: next_seq=175 base=160 cwnd=6 
+[SS] timeout: next_seq=184 base=178 cwnd=1 
+with the timeout going indefinetly becuase the receiver has recived a packet > 184 i.e 190
+*/
 void cc_timeout (void) {
 	cc_state=CC_SLOW_START;
 	sstresh=(cwnd/2>0)?cwnd/2 : 1;
@@ -96,7 +105,6 @@ void cc_receive_acks (int acks) {
 	case CC_FAST_RECOVERY:
 		cc_state=CC_CONGESTION_AVOIDANCE;
 		dup_ack_count=0;
-		//TODO understand why in book cwnd=sstresh however this violates the assertion next_seq < base + cwnd
 		cwnd=sstresh;
 		break;
 	case CC_SLOW_START:
