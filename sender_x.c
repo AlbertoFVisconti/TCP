@@ -68,19 +68,19 @@ with the timeout going indefinetly becuase the receiver has recived a packet > 1
 */
 void cc_timeout (void) {
 	cc_state=CC_SLOW_START;
-	sstresh=(cwnd/2>0)?cwnd/2 : 1;
+	sstresh=(cwnd/2>1)?cwnd/2 : 2;
 	cwnd=1;
 	dup_ack_count=0;
 }
 
 void cc_received_dup_ack (void) {
+	dup_ack_count++;
 	switch (cc_state)
 	{
 	case CC_SLOW_START:
-		dup_ack_count++;
 		if(3==dup_ack_count){
 			cc_state=CC_FAST_RECOVERY;
-			sstresh=(cwnd/2>0)?cwnd/2 : 1;
+			sstresh=(cwnd/2>1)?cwnd/2 : 2;
 			cwnd=sstresh+3;
 		}
 		break;
@@ -89,25 +89,28 @@ void cc_received_dup_ack (void) {
 		cwnd++;
 		break;
 	case CC_CONGESTION_AVOIDANCE:
-		dup_ack_count++;
 		if(3==dup_ack_count){
 			cc_state=CC_FAST_RECOVERY;
-			sstresh=(cwnd/2>0)?cwnd/2 : 1;
+			sstresh=(cwnd/2>1)?cwnd/2 : 2;
 			cwnd=sstresh+3;
 		}
 		break;
 	}
 }
 
+int temp=0;
+
 void cc_receive_acks (int acks) {
     switch (cc_state)
 	{
 	case CC_FAST_RECOVERY:
+		temp=0;
 		cc_state=CC_CONGESTION_AVOIDANCE;
 		dup_ack_count=0;
 		cwnd=sstresh;
 		break;
 	case CC_SLOW_START:
+		temp=0;
 		dup_ack_count=0;
 		cwnd+=acks;
 		if(cwnd>=sstresh){
@@ -116,7 +119,15 @@ void cc_receive_acks (int acks) {
 		break;
 	case CC_CONGESTION_AVOIDANCE:
 		dup_ack_count=0;
-		cwnd+= acks/cwnd;
+		temp+=acks;
+		if(temp>=cwnd){
+			int increase = temp/cwnd;
+			temp-=increase*cwnd;
+			cwnd+= increase;
+			
+		}
+
+		
 		break;
 	}
 }
