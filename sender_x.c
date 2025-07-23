@@ -57,15 +57,6 @@ void rtt_timeout_event () {
 	}
 }
 
-/*
-a new ack in FR  could violate the assertion next_seq < base + cwnd
-however forcing next_seq to be max base + cwnd - 1 could cause a sequence like this: 
-[CA] recived ACK: next_seq=190 base=156 cwnd=13 (initial state)
-[FR] triple ACK: next_seq=173 base=160 cwnd=9 
-[CA] recived ACK: next_seq=175 base=160 cwnd=6 
-[SS] timeout: next_seq=184 base=178 cwnd=1 
-with the timeout going indefinetly becuase the receiver has recived a packet > 184 i.e 190
-*/
 void cc_timeout (void) {
 	cc_state=CC_SLOW_START;
 	sstresh=(cwnd/2>1)?cwnd/2 : 2;
@@ -355,7 +346,6 @@ int sender (int sockfd) {
 	}
 
 	if (ev & EVENT_INPUT) {
-	    assert(next_seq < base + cwnd);
 	    struct packet * pkt = get_pkt_buf(next_seq);
 	    gbn_set_seq(pkt->bytes, next_seq);
 	    ssize_t seg_len = read(STDIN_FILENO, pkt->bytes + GBN_HEADER, GBN_MSS);
